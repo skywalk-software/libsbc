@@ -118,11 +118,8 @@ def mono_ch_codec(input_file, output_file):
 def three_ch_codec(input_file, output_file):
     audio_segment = AudioSegment.from_wav(input_file)
     n_channels = audio_segment.channels
-    channels = audio_segment.split_to_mono()
-    audio = []
-    for i in range(n_channels):
-        data = channels[i].get_array_of_samples(array_type_override="h")
-        audio.append(data)
+    audio = np.array(audio_segment.get_array_of_samples(), dtype=np.float32).reshape(-1, 3)
+    audio = audio.astype(np.int16)
 
     encoder = [sbc.Encoder(
         nsubbands=8,
@@ -144,20 +141,30 @@ def three_ch_codec(input_file, output_file):
     print(f"Frame size: {frame_size} bytes")
     print(f"Frame samples: {frame_samples} samples")
 
+    # pad audio to be divisible by frame_samples
+    if audio.shape[0] % frame_samples != 0:
+        len_frame = audio.shape[0] % frame_samples
+        print(f"Padding {frame_samples - len_frame} samples")
+        audio = np.pad(audio, ((0, frame_samples - len_frame), (0, 0)), mode="constant")
+
+    # pad one additional frame to the end of audio
+    print(f"Audio shape: {audio.shape}")
+    audio = np.pad(audio, ((0, frame_samples), (0, 0)), mode="constant")
+    print(f"Audio shape: {audio.shape}")
+
     # SBC encoding by frame_samples
     encoded = [b'' for _ in range(n_channels)]
     for i in range(n_channels):
-        # loop through each frame size in mixed.shape[0]
-        for j in range(0, len(audio[0]), frame_samples):
-            frame = audio[i][j:j + frame_samples]
-
-            # Pad with zeros if needed
-            if len(frame) < frame_samples:
-                frame.extend([0] * (frame_samples - len(frame)))
-
-            encoded[i] += encoder[i].encode(frame)
-
+        # loop through each frame size in audio.shape[0]
+        for j in range(0, audio.shape[0], frame_samples):
+            frame = audio[j:j + frame_samples, i]
+            encoded[i] += encoder[i].encode(frame.tolist())
         print(f"Encoded {len(encoded[i])} frames.")
+
+    # Write the encoded data to a file
+    with open(output_file.replace(".wav", ".sbc"), 'wb') as f:
+        for i in range(n_channels):
+            f.write(encoded[i])
 
     # SBC decoding by frame_size
     decoded = [b'' for _ in range(n_channels)]
@@ -165,16 +172,19 @@ def three_ch_codec(input_file, output_file):
         # loop through each frame size in mixed.shape[0]
         for j in range(0, len(encoded[i]), frame_size):
             encoded_frame = encoded[i][j:j + frame_size]
-
-            # Skip incomplete frames
-            if len(encoded_frame) < frame_size:
-                break
-
             decoded[i] += decoder[i].decode(encoded_frame)
 
         print(f"Decoded {len(decoded[i])} frames.")
 
     decoded_np = np.array([np.frombuffer(decoded[i], dtype=np.int16) for i in range(n_channels)]).T
+    print(f"Decoded shape: {decoded_np.shape}")
+    # remove the first 73 samples (SBC delay) of audio at the beginning
+    decoded_np = decoded_np[73:]
+    print(f"Decoded shape: {decoded_np.shape}")
+    # remove the rest of padded frame of audio at the end
+    decoded_np = decoded_np[:-(frame_samples - 73)]
+    print(f"Decoded shape: {decoded_np.shape}")
+
     decoded_audio = AudioSegment(data=decoded_np.tobytes(), sample_width=2, frame_rate=16000, channels=n_channels)
     decoded_audio.export(output_file, format="wav")
 
