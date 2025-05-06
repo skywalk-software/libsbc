@@ -195,7 +195,7 @@ class Encoder(_Base):
                 ("nchannels", c_int),
                 ("nblocks", c_int),
                 ("nsubbands", c_int),
-                ("_estates", c_byte * 144)  # Placeholder for the union in the C struct
+                ("_estates", c_byte * 700) 
             ]
         
         self.SBC = SBC
@@ -306,7 +306,7 @@ class Decoder(_Base):
                 ("nchannels", c_int),
                 ("nblocks", c_int),
                 ("nsubbands", c_int),
-                ("_dstates", c_byte * 144)  # Placeholder for the union in the C struct
+                ("_dstates", c_byte * 700)  
             ]
         
         self.SBC = SBC

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sbc"
+version = "0.1.0"
+description = "Python bindings for the SBC audio codec library"
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [
+    {name = "libsbc maintainers"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/skywalk-software/libsbc"
+"Bug Tracker" = "https://github.com/skywalk-software/libsbc/issues"
+
+[tool.setuptools]
+package-dir = {"" = "python"}
+packages = ["sbc"] 

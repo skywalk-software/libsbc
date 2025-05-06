@@ -90,18 +90,21 @@ A Python wrapper for the SBC (Sub-band Codec) library, similar to the liblc3 wra
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.7+
 - SBC library (e.g., libsbc.so or libsbc.dylib)
 
 ## Installation
 
 The SBC library needs to be installed on your system. The wrapper will look for it in standard library locations.
 
-Clone this repository:
+The Python package is located in the `python` directory and can be installed using pip:
 
 ```bash
-git clone https://github.com/yourusername/sbc-python
-cd sbc-python
+# Install directly from the repository
+pip install .
+
+# For development
+pip install -e .
 ```
 
 ## Usage
@@ -109,28 +112,27 @@ cd sbc-python
 ### Basic Usage
 
 ```python
-import sbc
-import array
+from sbc import SBCFreq, SBCMode, SBCBAM, Encoder, Decoder
 
 # Create an encoder for 16kHz mono audio
-encoder = sbc.Encoder(
+encoder = Encoder(
     nsubbands=8,
     nblocks=16,
-    frequency=sbc.SBCFreq.FREQ_16K,
-    mode=sbc.SBCMode.MONO,
+    frequency=SBCFreq.FREQ_16K,
+    mode=SBCMode.MONO,
     bitpool=32
 )
 
 # Encode PCM samples (16-bit integers)
-pcm_samples = array.array('h', [0, 100, 200, ...])  # Your PCM data here
+pcm_samples = [0, 100, 200, ...]  # Your PCM data here
 encoded_frame = encoder.encode(pcm_samples)
 
 # Create a decoder
-decoder = sbc.Decoder(
+decoder = Decoder(
     nsubbands=8,
     nblocks=16,
-    frequency=sbc.SBCFreq.FREQ_16K,
-    mode=sbc.SBCMode.MONO
+    frequency=SBCFreq.FREQ_16K,
+    mode=SBCMode.MONO
 )
 
 # Decode SBC frame back to PCM
@@ -142,11 +144,8 @@ decoded_samples = decoder.decode(encoded_frame)
 See the `example.py` script for a complete example of encoding and decoding WAV files.
 
 ```bash
-# Encode a WAV file to SBC
-python example.py --encode --input input.wav --output encoded.sbc --bitpool 32
-
-# Decode an SBC file to WAV
-python example.py --decode --input encoded.sbc --output decoded.wav
+# Run the example script
+python example.py --input input.wav --output output.wav
 ```
 
 ## API Reference
