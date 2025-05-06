@@ -3,6 +3,9 @@ import ctypes
 import enum
 import glob
 import os
+import platform
+import sys
+from pathlib import Path
 
 from ctypes import c_bool, c_byte, c_int, c_uint, c_size_t, c_void_p, c_int16
 from ctypes.util import find_library
@@ -85,12 +88,7 @@ class _Base:
             raise ValueError("Invalid bit allocation method")
         
         # Load the SBC library
-        if libpath is None:
-            libpath = find_library("sbc")
-            if not libpath:
-                raise Exception("SBC library not found")
-        
-        self.lib = ctypes.cdll.LoadLibrary(libpath)
+        self.lib = self._load_library(libpath)
         
         # Get C standard library for memory allocation
         libc = ctypes.cdll.LoadLibrary(find_library("c"))
@@ -134,6 +132,57 @@ class _Base:
         
         self.lib.sbc_get_frame_bitrate.argtypes = [ctypes.POINTER(SBCFrame)]
         self.lib.sbc_get_frame_bitrate.restype = c_uint
+    
+    def _load_library(self, libpath=None):
+        """
+        Load the SBC library, prioritizing:
+        1. User-provided explicit path
+        2. Library packaged with this module
+        3. System-installed library
+        """
+        if libpath is not None:
+            return ctypes.cdll.LoadLibrary(libpath)
+        
+        # Try to load from package directory first
+        package_dir = Path(__file__).parent.absolute()
+        system = platform.system()
+        
+        if system == 'Linux':
+            lib_name = 'libsbc.so'
+        elif system == 'Darwin':
+            lib_name = 'libsbc.dylib'
+        elif system == 'Windows':
+            lib_name = 'libsbc.dll'
+        else:
+            lib_name = 'libsbc.so'  # Default to Linux naming
+        
+        packaged_lib = package_dir / lib_name
+        if packaged_lib.exists():
+            try:
+                return ctypes.cdll.LoadLibrary(str(packaged_lib))
+            except OSError:
+                pass  # Fall back to other methods
+        
+        # Try to find in system paths
+        system_lib = find_library("sbc")
+        if system_lib:
+            return ctypes.cdll.LoadLibrary(system_lib)
+        
+        # Final fallback: search common directories
+        common_dirs = [
+            '/usr/lib',
+            '/usr/local/lib',
+            '/opt/local/lib',
+        ]
+        
+        for d in common_dirs:
+            pattern = os.path.join(d, f'*{lib_name}*')
+            matches = glob.glob(pattern)
+            if matches:
+                return ctypes.cdll.LoadLibrary(matches[0])
+        
+        # If we got here, we couldn't find the library
+        raise Exception(f"SBC library ({lib_name}) not found. Please install it or specify the path using libpath.")
     
     def get_frame_size(self):
         """

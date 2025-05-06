@@ -16,6 +16,13 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 [project.urls]
@@ -24,4 +31,12 @@ classifiers = [
 
 [tool.setuptools]
 package-dir = {"" = "python"}
-packages = ["sbc"] 
+packages = ["sbc"]
+include-package-data = true
+script-files = ["setup.py"]
+
+[tool.setuptools.package-data]
+sbc = ["*.so", "*.dylib", "*.dll"]
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.md", "python/README.md"]} 

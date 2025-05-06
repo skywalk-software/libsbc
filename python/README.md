@@ -7,7 +7,10 @@ Python bindings for the SBC (SubBand Codec) library, used primarily for Bluetoot
 ### Requirements
 
 - Python 3.7 or newer
-- SBC library installed on your system
+- C compiler (gcc, clang, etc.)
+- Make
+
+The package will automatically build the native SBC library during installation, so you don't need to install it separately.
 
 ### Installing the Package
 
@@ -17,6 +20,25 @@ pip install .
 
 # For development
 pip install -e .
+```
+
+The installation process will:
+1. Build the native SBC library using make
+2. Create the appropriate shared library (.so on Linux, .dylib on macOS, .dll on Windows)
+3. Package the shared library with the Python bindings
+
+### Manual Installation
+
+If the automatic build fails, you can build the native library manually:
+
+```bash
+# First build the library
+make
+# On macOS, you might need to create a dynamic library
+make dynamic  # Creates libsbc.dylib from libsbc.a
+
+# Then install the Python package
+pip install .
 ```
 
 ## Usage

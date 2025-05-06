@@ -34,9 +34,14 @@ LDFLAGS := $(if $(DEBUG),-O0 -g,-O3)
 CFLAGS += -std=c11 -Wall -Wextra -Wdouble-promotion -Wvla -pedantic
 
 TARGET = $(lastword $(shell $(CC) -v 2>&1 | grep "Target: "))
+OS := $(shell uname -s)
 
 LIB_SHARED := true
 LIB_SUFFIX := so
+
+ifeq ($(OS),Darwin)
+  LIB_SUFFIX := dylib
+endif
 
 ifeq ($(TARGET),wasm32)
   LIB_SHARED := false
@@ -141,6 +146,9 @@ $(BUILD_DIR)/%.o: %.cc $(MAKEFILE_DEPS)
 ifeq ($(LIB_SHARED),true)
     $(LIB): CFLAGS += -fPIC
     $(LIB): LDFLAGS += -shared
+    ifeq ($(OS),Darwin)
+        $(LIB): LDFLAGS += -dynamiclib -install_name @rpath/$(notdir $@)
+    endif
 endif
 
 $(LIB): $(MAKEFILE_DEPS)
@@ -153,6 +161,18 @@ $(BIN): $(MAKEFILE_DEPS)
 	$(V)mkdir -p $(dir $@)
 	$(V)$(LD) $(filter %.o,$^) $(filter %.$(LIB_SUFFIX),$^) \
 	    $(LDFLAGS) $(addprefix -l,$(LDLIBS)) -o $@
+
+# Special rule to build a dynamic library from a static library on macOS
+.PHONY: dynamic
+dynamic:
+	@echo "  Creating dynamic library from static library"
+	$(V)mkdir -p $(BIN_DIR)
+ifeq ($(OS),Darwin)
+	$(V)$(CC) -dynamiclib -install_name @rpath/libsbc.dylib \
+		-o $(BIN_DIR)/libsbc.dylib -Wl,-all_load $(BIN_DIR)/libsbc.a
+else
+	$(V)$(CC) -shared -o $(BIN_DIR)/libsbc.so -Wl,--whole-archive $(BIN_DIR)/libsbc.a -Wl,--no-whole-archive
+endif
 
 clean:
 	$(V)rm -rf $(BUILD_DIR)
